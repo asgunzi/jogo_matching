@@ -310,7 +310,7 @@
     transform: translateX(-50%);
     background: #1a0a0e;
     border: 1px solid var(--accent);
-    color: var(--text);
+    color: #ffffff;
     font-size: .72rem;
     white-space: nowrap;
     padding: .3rem .6rem;
@@ -351,8 +351,6 @@
 </div>
 
 <div class="actions">
-  <button class="btn-primary" id="btn-evaluate" disabled>Avaliar resultado</button>
-
   <button class="btn-secondary" id="btn-reset">↺ Novo jogo</button>
 </div>
 
@@ -537,8 +535,12 @@ function onCellClick(e) {
 
   refreshGrid();
   hintShown = false;
-  document.getElementById('result-panel').classList.remove('show');
-  document.getElementById('btn-evaluate').disabled = usedCols.size < N;
+
+  if (usedCols.size === N) {
+    evaluateResult();
+  } else {
+    document.getElementById('result-panel').classList.remove('show');
+  }
 }
 
 function updateStats() {
@@ -593,7 +595,7 @@ function showHint() {
   usedCols = new Set(selected);
   refreshGrid();
   hintShown = true;
-  document.getElementById('btn-evaluate').disabled = false;
+  evaluateResult();
 
   // Flash the cells
   setTimeout(() => {
@@ -619,12 +621,9 @@ function init() {
   optimalScore = optimalAssignment.reduce((s, c, r) => s + matrix[r][c], 0);
 
 
-  document.getElementById('btn-evaluate').disabled = true;
   document.getElementById('result-panel').classList.remove('show');
   buildGrid();
 }
-
-document.getElementById('btn-evaluate').addEventListener('click', evaluateResult);
 
 document.getElementById('btn-reset').addEventListener('click', init);
 
