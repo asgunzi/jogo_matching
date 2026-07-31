@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problema de Atribuição</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #ffffff;
+    --surface:   #f4f6f8;
+    --surface2:  #e8ecf0;
+    --accent:    #2563eb;
+    --accent2:   #1d4ed8;
+    --gold:      #b45309;
+    --text:      #1e293b;
+    --muted:     #64748b;
+    --cell-size: 60px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-size: .75rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: .6rem;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text);
+  }
+  .subtitle {
+    margin-top: .6rem;
+    color: var(--muted);
+    font-size: .9rem;
+    font-weight: 300;
+    max-width: 42ch;
+    margin-inline: auto;
+    line-height: 1.5;
+  }
+
+  /* ── Stats bar ── */
+  .stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: .7rem 1.4rem;
+    text-align: center;
+    min-width: 110px;
+  }
+  .stat-label {
+    font-size: .7rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .2rem;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--gold);
+    transition: transform .2s;
+  }
+  .stat-value.pop {
+    animation: pop .25s ease;
+  }
+  @keyframes pop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .75rem;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── Table wrapper ── */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: .5rem;
+  }
+
+  /* ── Grid ── */
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(9, var(--cell-size));
+    grid-template-rows:    repeat(9, var(--cell-size));
+    gap: 3px;
+    background: #cbd5e1;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 3px;
+  }
+
+  /* ── Cells ── */
+  .cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: .85rem;
+    font-weight: 500;
+    cursor: default;
+    user-select: none;
+    transition: background .15s, transform .12s, box-shadow .15s;
+    position: relative;
+  }
+
+  /* Header row / col */
+  .cell.header-row {
+    background: var(--surface2);
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: .8rem;
+    color: var(--accent2);
+    letter-spacing: .02em;
+  }
+  .cell.header-col {
+    background: var(--surface2);
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: .8rem;
+    color: var(--accent2);
+    letter-spacing: .02em;
+  }
+  .cell.corner {
+    background: transparent;
+  }
+
+  /* Data cells */
+  .cell.data {
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--text);
+    font-weight: 600;
+  }
+  .cell.data:hover:not(.blocked):not(.selected) {
+    background: #dbeafe;
+    transform: scale(1.06);
+    box-shadow: 0 0 0 1px var(--accent);
+    z-index: 2;
+  }
+
+  /* Score coloring — removed for difficulty */
+
+  /* Selected */
+  .cell.data.selected {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    box-shadow: 0 0 0 2px #93c5fd, 0 4px 16px rgba(37,99,235,.3);
+    z-index: 3;
+    transform: scale(1.08);
+  }
+  .cell.data.selected::after {
+    content: '♥';
+    position: absolute;
+    top: 2px; right: 4px;
+    font-size: .55rem;
+    opacity: .8;
+  }
+
+  /* Blocked (row/col already used) */
+  .cell.data.blocked {
+    opacity: .25;
+    cursor: not-allowed;
+  }
+  .cell.data.blocked:hover { transform: none; box-shadow: none; }
+
+  /* Highlight row/col of selected */
+  .cell.data.row-highlight,
+  .cell.data.col-highlight {
+    background: #eff6ff;
+  }
+
+  /* ── Buttons ── */
+  .actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    font-family: 'Inter', sans-serif;
+    font-size: .85rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 10px;
+    padding: .7rem 1.6rem;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  button:hover { transform: translateY(-2px); }
+  button:active { transform: scale(.96); }
+  .btn-primary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37,99,235,.3);
+  }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid #cbd5e1;
+  }
+  .btn-hint {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+
+  /* ── Toast / Result panel ── */
+  #result-panel {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: .6rem;
+    margin-top: 1.8rem;
+    padding: 1.4rem 2rem;
+    background: var(--surface);
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+  }
+  #result-panel.show { display: flex; animation: fadeIn .4s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+  }
+  .result-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+  .result-pairs {
+    font-size: .82rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .result-pairs span { color: var(--accent2); }
+  .optimal-note {
+    font-size: .78rem;
+    color: var(--gold);
+    margin-top: .4rem;
+  }
+
+  /* ── Tooltip ── */
+  .cell.data[data-tip]:hover::before {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a0a0e;
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: .72rem;
+    white-space: nowrap;
+    padding: .3rem .6rem;
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 99;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+  }
+
+  /* ── Footer ── */
+  .footer-note {
+    margin-top: 2.5rem;
+    font-size: .72rem;
+    color: #94a3b8;
+    text-align: center;
+    letter-spacing: .04em;
+  }
+
+  @media (max-width: 620px) {
+    :root { --cell-size: 44px; }
+    h1 { font-size: 1.8rem; }
+    .cell.header-row, .cell.header-col { font-size: .65rem; }
+    .cell.data { font-size: .75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Problema de Atribuição</h1>
+  <p class="subtitle">Selecione 8 pares — cada homem e cada mulher apenas uma vez — e maximize a compatibilidade total.</p>
+</header>
+
+
+<div class="table-wrapper">
+  <div class="grid-container" id="grid"></div>
+</div>
+
+<div class="actions">
+  <button class="btn-primary" id="btn-evaluate" disabled>Avaliar resultado</button>
+
+  <button class="btn-secondary" id="btn-reset">↺ Novo jogo</button>
+</div>
+
+<div id="result-panel">
+  <div class="result-title" id="result-title"></div>
+  <div class="result-score" id="result-score"></div>
+  <div class="result-pairs" id="result-pairs"></div>
+  <div class="optimal-note" id="optimal-note"></div>
+</div>
+
+<p class="footer-note">Problema de Atribuição — Algoritmo Húngaro — O(n³)</p>
+<p class="footer-note" style="margin-top:.5rem;">Crédito: Arnaldo Gunzi</p>
+
+<script>
+// ─────────────────────────────────────────────
+//  Names
+// ─────────────────────────────────────────────
+const MEN   = ['Artur','Bruno','Carlos','Diego','Eduardo','Felipe','Gabriel','Henrique'];
+const WOMEN = ['Ana','Beatriz','Carla','Diana','Elisa','Fernanda','Gabriela','Helena'];
+const N = 8;
+
+// ─────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────
+let matrix   = [];   // [row][col] = score 1..10
+let selected = [];   // selected[row] = col or -1
+let usedCols = new Set();
+let optimalAssignment = []; // optimal[row] = col
+let optimalScore = 0;
+let hintShown = false;
+
+// ─────────────────────────────────────────────
+//  Hungarian algorithm (maximisation)
+// ─────────────────────────────────────────────
+function hungarian(cost) {
+  // Convert max to min by negating
+  const n = cost.length;
+  const C = cost.map(r => r.map(v => -v));
+
+  // Pad to square (already is)
+  const inf = 1e9;
+  let u = new Array(n+1).fill(0);
+  let v = new Array(n+1).fill(0);
+  let p = new Array(n+1).fill(0); // assignment col->row (1-indexed)
+  let way = new Array(n+1).fill(0);
+
+  for (let i = 1; i <= n; i++) {
+    p[0] = i;
+    let j0 = 0;
+    let minDist = new Array(n+1).fill(inf);
+    let used = new Array(n+1).fill(false);
+    do {
+      used[j0] = true;
+      let i0 = p[j0], delta = inf, j1;
+      for (let j = 1; j <= n; j++) {
+        if (!used[j]) {
+          let cur = C[i0-1][j-1] - u[i0] - v[j];
+          if (cur < minDist[j]) { minDist[j] = cur; way[j] = j0; }
+          if (minDist[j] < delta) { delta = minDist[j]; j1 = j; }
+        }
+      }
+      for (let j = 0; j <= n; j++) {
+        if (used[j]) { u[p[j]] += delta; v[j] -= delta; }
+        else minDist[j] -= delta;
+      }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { let j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+
+  const ans = new Array(n).fill(0);
+  for (let j = 1; j <= n; j++) if (p[j]) ans[p[j]-1] = j-1;
+  return ans;
+}
+
+// ─────────────────────────────────────────────
+//  Generate random matrix (biased toward variety)
+// ─────────────────────────────────────────────
+function generateMatrix() {
+  // Ensure interesting spread: not all cells equal
+  const m = Array.from({length:N}, () => Array.from({length:N}, () => Math.floor(Math.random()*10)+1));
+  return m;
+}
+
+// ─────────────────────────────────────────────
+//  Render
+// ─────────────────────────────────────────────
+function scoreClass(v) {
+  if (v <= 3) return 'score-low';
+  if (v <= 6) return 'score-mid';
+  if (v <= 8) return 'score-high';
+  return 'score-top';
+}
+
+function buildGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  for (let r = 0; r < N+1; r++) {
+    for (let c = 0; c < N+1; c++) {
+      const cell = document.createElement('div');
+      cell.classList.add('cell');
+
+      if (r === 0 && c === 0) {
+        cell.classList.add('corner');
+        cell.innerHTML = '<span style="font-size:.65rem;color:#94a3b8;">♂ \\ ♀</span>';
+      } else if (r === 0) {
+        cell.classList.add('header-row');
+        cell.textContent = WOMEN[c-1].substring(0,3) + '.';
+        cell.title = WOMEN[c-1];
+      } else if (c === 0) {
+        cell.classList.add('header-col');
+        cell.textContent = MEN[r-1].substring(0,3) + '.';
+        cell.title = MEN[r-1];
+      } else {
+        const row = r-1, col = c-1;
+        const val = matrix[row][col];
+        cell.classList.add('data');
+        cell.dataset.row = row;
+        cell.dataset.col = col;
+        cell.textContent = val;
+        cell.dataset.tip = `${MEN[row]} ↔ ${WOMEN[col]}`;
+        cell.addEventListener('click', onCellClick);
+      }
+
+      cell.id = `cell-${r}-${c}`;
+      grid.appendChild(cell);
+    }
+  }
+  refreshGrid();
+}
+
+function refreshGrid() {
+  for (let r = 0; r < N; r++) {
+    for (let c = 0; c < N; c++) {
+      const cell = document.getElementById(`cell-${r+1}-${c+1}`);
+      if (!cell) continue;
+      cell.classList.remove('selected','blocked','row-highlight','col-highlight');
+
+      const rowSel = selected[r]; // col chosen for row r, or -1
+      const colUsed = usedCols.has(c);
+      const rowUsed = rowSel !== -1;
+
+      if (rowSel === c) {
+        cell.classList.add('selected');
+      } else if (rowUsed || colUsed) {
+        cell.classList.add('blocked');
+      }
+
+      // Soft highlight same row/col as any selection
+      if (!cell.classList.contains('selected') && !cell.classList.contains('blocked')) {
+        const rowHasSelection = selected[r] !== -1;
+        const colHasSelection = [...Array(N).keys()].some(rr => selected[rr] === c);
+        if (rowHasSelection) cell.classList.add('row-highlight');
+        if (colHasSelection) cell.classList.add('col-highlight');
+      }
+    }
+  }
+  updateStats();
+}
+
+// ─────────────────────────────────────────────
+//  Interaction
+// ─────────────────────────────────────────────
+function onCellClick(e) {
+  const row = +e.currentTarget.dataset.row;
+  const col = +e.currentTarget.dataset.col;
+
+  if (e.currentTarget.classList.contains('blocked')) return;
+
+  // Toggle off if already selected
+  if (selected[row] === col) {
+    usedCols.delete(col);
+    selected[row] = -1;
+  } else {
+    // Replace previous selection for this row
+    if (selected[row] !== -1) usedCols.delete(selected[row]);
+    selected[row] = col;
+    usedCols.add(col);
+  }
+
+  refreshGrid();
+  hintShown = false;
+  document.getElementById('result-panel').classList.remove('show');
+  document.getElementById('btn-evaluate').disabled = usedCols.size < N;
+}
+
+function updateStats() {
+  // stats bar removed; nothing to update here
+}
+
+// ─────────────────────────────────────────────
+//  Evaluate
+// ─────────────────────────────────────────────
+function evaluateResult() {
+  let score = 0;
+  const pairList = [];
+  for (let r = 0; r < N; r++) {
+    const c = selected[r];
+    score += matrix[r][c];
+    pairList.push({ man: MEN[r], woman: WOMEN[c], val: matrix[r][c] });
+  }
+
+  const isOptimal = score === optimalScore;
+  const pct = Math.round(score / optimalScore * 100);
+
+  let grade, emoji;
+  if (pct === 100)      { grade = 'Perfeito! Você encontrou a solução ótima!'; emoji = '💍'; }
+  else if (pct >= 90)   { grade = 'Excelente! Quase perfeito.'; emoji = '💖'; }
+  else if (pct >= 75)   { grade = 'Muito bom! Dá pra melhorar um pouco.'; emoji = '💕'; }
+  else if (pct >= 60)   { grade = 'Razoável. Tente reorganizar alguns pares.'; emoji = '💔'; }
+  else                  { grade = 'Pode melhorar bastante!'; emoji = '😬'; }
+
+  const panel = document.getElementById('result-panel');
+  document.getElementById('result-title').textContent = `${emoji} ${grade}`;
+  document.getElementById('result-score').textContent = `${score} pts`;
+
+  pairList.sort((a,b) => b.val - a.val);
+  document.getElementById('result-pairs').innerHTML =
+    pairList.map(p => `<span>${p.man}</span> ↔ <span>${p.woman}</span>: ${p.val} pts`).join('<br>');
+
+  document.getElementById('optimal-note').textContent =
+    isOptimal
+      ? `✨ Score máximo possível: ${optimalScore} pts — você acertou!`
+      : `Máximo possível: ${optimalScore} pts (${pct}% da solução ótima)`;
+
+  panel.classList.add('show');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ─────────────────────────────────────────────
+//  Hint — show optimal assignment
+// ─────────────────────────────────────────────
+function showHint() {
+  // Reset and apply optimal
+  selected = optimalAssignment.slice();
+  usedCols = new Set(selected);
+  refreshGrid();
+  hintShown = true;
+  document.getElementById('btn-evaluate').disabled = false;
+
+  // Flash the cells
+  setTimeout(() => {
+    for (let r = 0; r < N; r++) {
+      const c = selected[r];
+      const cell = document.getElementById(`cell-${r+1}-${c+1}`);
+      cell.style.transition = 'none';
+      cell.style.transform = 'scale(1.18)';
+      setTimeout(() => { cell.style.transform = ''; cell.style.transition = ''; }, 350);
+    }
+  }, 50);
+}
+
+// ─────────────────────────────────────────────
+//  Init / Reset
+// ─────────────────────────────────────────────
+function init() {
+  matrix = generateMatrix();
+  selected = new Array(N).fill(-1);
+  usedCols = new Set();
+  hintShown = false;
+  optimalAssignment = hungarian(matrix);
+  optimalScore = optimalAssignment.reduce((s, c, r) => s + matrix[r][c], 0);
+
+
+  document.getElementById('btn-evaluate').disabled = true;
+  document.getElementById('result-panel').classList.remove('show');
+  buildGrid();
+}
+
+document.getElementById('btn-evaluate').addEventListener('click', evaluateResult);
+
+document.getElementById('btn-reset').addEventListener('click', init);
+
+init();
+</script>
+</body>
+</html>
