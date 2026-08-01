@@ -131,8 +131,8 @@
   /* ── Grid ── */
   .grid-container {
     display: grid;
-    grid-template-columns: repeat(9, var(--cell-size));
-    grid-template-rows:    repeat(9, var(--cell-size));
+    grid-template-columns: repeat(var(--grid-n), var(--cell-size));
+    grid-template-rows:    repeat(var(--grid-n), var(--cell-size));
     gap: 3px;
     background: #cbd5e1;
     border: 1px solid #cbd5e1;
@@ -342,7 +342,7 @@
 
 <header>
   <h1>Problema de Atribuição</h1>
-  <p class="subtitle">Selecione 8 pares — cada homem e cada mulher apenas uma vez — e maximize a compatibilidade total.</p>
+  <p class="subtitle" id="subtitle">Selecione 8 pares — cada homem e cada mulher apenas uma vez — e maximize a compatibilidade total.</p>
 </header>
 
 
@@ -369,9 +369,9 @@
 // ─────────────────────────────────────────────
 //  Names
 // ─────────────────────────────────────────────
-const MEN   = ['Artur','Bruno','Carlos','Diego','Eduardo','Felipe','Gabriel','Henrique'];
-const WOMEN = ['Ana','Beatriz','Carla','Diana','Elisa','Fernanda','Gabriela','Helena'];
-const N = 8;
+const MEN   = ['Artur','Bruno','Carlos','Diego','Eduardo','Felipe','Geraldo','Henrique'];
+const WOMEN = ['Ana','Beatriz','Cíntia','Diana','Elisa','Fernanda','Gabriela','Helena'];
+let N = 6;
 
 // ─────────────────────────────────────────────
 //  State
@@ -449,6 +449,7 @@ function scoreClass(v) {
 function buildGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
+  grid.style.setProperty('--grid-n', N + 1);
 
   for (let r = 0; r < N+1; r++) {
     for (let c = 0; c < N+1; c++) {
@@ -564,14 +565,14 @@ function evaluateResult() {
 
   let grade, emoji;
   if (pct === 100)      { grade = 'Perfeito! Você encontrou a solução ótima!'; emoji = '💍'; }
-  else if (pct >= 90)   { grade = 'Excelente! Quase perfeito.'; emoji = '💖'; }
-  else if (pct >= 75)   { grade = 'Muito bom! Dá pra melhorar um pouco.'; emoji = '💕'; }
-  else if (pct >= 60)   { grade = 'Razoável. Tente reorganizar alguns pares.'; emoji = '💔'; }
-  else                  { grade = 'Pode melhorar bastante!'; emoji = '😬'; }
+  else if (pct >= 90)   { grade = 'Quase perfeito! Você pode evoluir.'; emoji = '💖'; }
+  else if (pct >= 75)   { grade = 'Meia boca! Dá para melhorar.'; emoji = '💕'; }
+  else if (pct >= 60)   { grade = 'Ruim, tente novamente.'; emoji = '💔'; }
+  else                  { grade = 'Péssimo, horrível!'; emoji = '😬'; }
 
   const panel = document.getElementById('result-panel');
   document.getElementById('result-title').textContent = `${emoji} ${grade}`;
-  document.getElementById('result-score').textContent = `${score} pts`;
+  document.getElementById('result-score').textContent = `${score} pts de ${optimalScore}`;
 
   pairList.sort((a,b) => b.val - a.val);
   document.getElementById('result-pairs').innerHTML =
@@ -612,7 +613,8 @@ function showHint() {
 // ─────────────────────────────────────────────
 //  Init / Reset
 // ─────────────────────────────────────────────
-function init() {
+function init(pairs) {
+  if (pairs) N = pairs;
   matrix = generateMatrix();
   selected = new Array(N).fill(-1);
   usedCols = new Set();
@@ -620,14 +622,15 @@ function init() {
   optimalAssignment = hungarian(matrix);
   optimalScore = optimalAssignment.reduce((s, c, r) => s + matrix[r][c], 0);
 
-
+  document.getElementById('subtitle').textContent =
+    `Selecione ${N} pares — cada homem e cada mulher apenas uma vez — e maximize a compatibilidade total.`;
   document.getElementById('result-panel').classList.remove('show');
   buildGrid();
 }
 
-document.getElementById('btn-reset').addEventListener('click', init);
+document.getElementById('btn-reset').addEventListener('click', () => init(8));
 
-init();
+init(6);
 </script>
 </body>
 </html>
